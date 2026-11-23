@@ -1,0 +1,417 @@
+<title>Tàu Song Ngữ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0b3d5c"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;800&family=JetBrains+Mono:wght@500&family=Noto+Serif+SC:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow column like a ship's logbook — route of ports on home, one exercise card per screen while playing */
+:root{
+  --bg:#eef2f1; --surface:#ffffff; --ink:#14262b; --muted:#5d7277; --line:#d3dddc;
+  --sea:#0f5560; --sea-soft:#dcebea;
+  --zh:#b8322a; --zh-soft:#f7e3e0;   /* Chinese = seal red */
+  --en:#2453a6; --en-soft:#e1e9f8;   /* English = signal blue */
+  --flag:#e9b10c;                     /* maritime yellow for XP/stars */
+  --ok:#1d7a4c; --ok-soft:#dcf1e5; --bad:#b03a2e; --bad-soft:#f8e1de;
+  --f-ui:"Be Vietnam Pro",system-ui,"Segoe UI",sans-serif;
+  --f-han:"Noto Serif SC","Songti SC","SimSun",serif;
+  --f-code:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1719; --surface:#142427; --ink:#e3ecec; --muted:#93a8ab; --line:#26393c;
+  --sea:#5cc2c9; --sea-soft:#17363a; --zh:#f07a6c; --zh-soft:#3a1f1c; --en:#87a9f0; --en-soft:#1b2944;
+  --flag:#f2c53d; --ok:#5fd394; --ok-soft:#163626; --bad:#f08a7e; --bad-soft:#3b1d1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1719; --surface:#142427; --ink:#e3ecec; --muted:#93a8ab; --line:#26393c;
+  --sea:#5cc2c9; --sea-soft:#17363a; --zh:#f07a6c; --zh-soft:#3a1f1c; --en:#87a9f0; --en-soft:#1b2944;
+  --flag:#f2c53d; --ok:#5fd394; --ok-soft:#163626; --bad:#f08a7e; --bad-soft:#3b1d1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.app{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
+h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.sub{color:var(--muted);margin:2px 0 0;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 8px;text-align:center}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted);letter-spacing:.04em}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:999px;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px}
+.chip[aria-pressed="true"]{border-color:var(--sea);color:var(--sea);background:var(--sea-soft)}
+.review{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--sea);color:var(--bg);border:0;border-radius:12px;padding:14px 16px;text-align:left;width:100%}
+.review[disabled]{opacity:.55;cursor:default}
+.review small{display:block;opacity:.85;font-size:13px}
+.route{list-style:none;margin:0;padding:0;position:relative}
+.route::before{content:"";position:absolute;left:21px;top:22px;bottom:22px;border-left:2px dashed var(--line)}
+.port{position:relative;display:flex;gap:14px;align-items:center;padding:8px 0}
+.dot{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:2px solid var(--line);z-index:1;font-size:13px;font-weight:700;color:var(--muted)}
+.port.done .dot{border-color:var(--sea);color:var(--sea)}
+.port.here .dot{background:var(--sea);border-color:var(--sea);color:var(--bg)}
+.port button{flex:1;min-width:0;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.port.here button{border-color:var(--sea);box-shadow:0 2px 0 var(--sea)}
+.port button[disabled]{opacity:.5;cursor:default}
+.code{font-family:var(--f-code);font-size:11px;color:var(--muted);letter-spacing:.05em}
+.city{font-weight:600}
+.theme{font-size:13px;color:var(--muted)}
+.stars{color:var(--flag);font-size:15px;letter-spacing:2px;white-space:nowrap}
+.stars i{color:var(--line);font-style:normal}
+.foot{font-size:13px;color:var(--muted)}
+/* play */
+.bar{display:flex;align-items:center;gap:12px}
+.x{border:0;background:none;font-size:22px;color:var(--muted);padding:4px 8px}
+.prog{flex:1;height:10px;background:var(--line);border-radius:99px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--sea);border-radius:99px;transition:width .3s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.kind{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.vi{font-size:20px;font-weight:600;text-wrap:balance}
+.ph{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px}
+.ph.zh{background:var(--zh-soft)} .ph.en{background:var(--en-soft)}
+.ph .t{flex:1;min-width:0}
+.han{font-family:var(--f-han);font-size:26px;line-height:1.35;color:var(--zh);font-weight:500}
+.py{font-size:14px;color:var(--muted)}
+.ent{font-size:20px;color:var(--en);font-weight:600}
+.tag{font-family:var(--f-code);font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:4px;display:inline-block}
+.zh .tag{background:var(--zh);color:var(--surface)} .en .tag{background:var(--en);color:var(--surface)}
+.spk{flex:none;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.spk svg{width:20px;height:20px}
+.spk.slow{width:34px;height:34px;font-size:11px;font-weight:700}
+.opts{display:grid;gap:10px}
+.opt{text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px}
+.opt .han{font-size:22px}
+.opt.sel{border-color:var(--sea);background:var(--sea-soft)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.bubble{background:var(--bg);border-radius:4px 16px 16px 16px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.who{font-size:12px;color:var(--muted)}
+.hint{border:0;background:none;color:var(--sea);font-size:13px;padding:0;text-decoration:underline}
+.slots{min-height:64px;border-bottom:2px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;padding:8px 0;align-items:flex-end}
+.bank{display:flex;flex-wrap:wrap;gap:8px}
+.tile{border:1px solid var(--line);border-bottom-width:3px;background:var(--surface);border-radius:10px;padding:8px 12px;font-size:18px}
+.tile.zhf{font-family:var(--f-han);color:var(--zh)}
+.tile.used{visibility:hidden}
+.mic{align-self:center;width:84px;height:84px;border-radius:50%;border:0;background:var(--sea);color:var(--bg);display:grid;place-items:center}
+.mic svg{width:34px;height:34px}
+.mic.on{animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.08)}}
+@media (prefers-reduced-motion:reduce){.mic.on{animation:none}.prog i{transition:none}}
+.heard{text-align:center;color:var(--muted);font-size:15px;min-height:22px}
+.go{width:100%;border:0;border-radius:12px;padding:15px;font-size:17px;font-weight:700;background:var(--sea);color:var(--bg)}
+.go[disabled]{opacity:.4;cursor:default}
+.go.ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+.fb{border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.fb.ok{background:var(--ok-soft);color:var(--ok)} .fb.no{background:var(--bad-soft);color:var(--bad)}
+.fb b{font-size:16px}
+.fb .ph{background:var(--surface)}
+.end{text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center}
+.big{font-size:44px;color:var(--flag);letter-spacing:6px}
+.note{font-size:13px;color:var(--muted)}
+@media (max-width:400px){.stat b{font-size:17px}.han{font-size:23px}h1{font-size:24px}}
+</style>
+
+<div class="app" id="app"></div>
+
+<script>
+// ---------- CONTENT ----------
+// items: [Vietnamese, English, Chinese chunks split by |, pinyin]
+// chat: [partner zh, pinyin, en, vi, index of correct reply in items]
+const PORTS=[
+{code:"VNHPH",city:"Hải Phòng",theme:"Chào hỏi & giới thiệu",items:[
+["Xin chào, rất vui được gặp anh/chị.","Hello, nice to meet you.","你好，|很高兴|认识你。","nǐ hǎo, hěn gāoxìng rènshi nǐ."],
+["Tôi tên là Ánh.","My name is Anh.","我|叫|阿英。","wǒ jiào Ā Yīng."],
+["Tôi làm ở công ty logistics.","I work at a logistics company.","我|在|物流公司|工作。","wǒ zài wùliú gōngsī gōngzuò."],
+["Anh/chị là người nước nào?","Where are you from?","你|是|哪国人？","nǐ shì nǎ guó rén?"],
+["Tôi là người Việt Nam.","I'm from Vietnam.","我|是|越南人。","wǒ shì Yuènán rén."],
+["Đây là danh thiếp của tôi.","Here is my business card.","这|是|我的|名片。","zhè shì wǒ de míngpiàn."]],
+chat:[
+["你好！我是王经理。","nǐ hǎo! wǒ shì Wáng jīnglǐ.","Hello! I'm Manager Wang.","Xin chào! Tôi là quản lý Vương.",0],
+["请问，你叫什么名字？","qǐngwèn, nǐ jiào shénme míngzi?","May I ask your name?","Cho hỏi chị tên gì?",1],
+["你在哪儿工作？","nǐ zài nǎr gōngzuò?","Where do you work?","Chị làm việc ở đâu?",2],
+["你是中国人吗？","nǐ shì Zhōngguó rén ma?","Are you Chinese?","Chị là người Trung Quốc à?",4]]},
+{code:"CNSHA",city:"Thượng Hải",theme:"Gọi điện thoại",items:[
+["A lô, xin hỏi ai đầu dây ạ?","Hello, who's speaking, please?","喂，|请问|是|哪位？","wéi, qǐngwèn shì nǎ wèi?"],
+["Tôi muốn gặp anh Lý.","I'd like to speak to Mr. Li.","我|想|找|李先生。","wǒ xiǎng zhǎo Lǐ xiānsheng."],
+["Xin vui lòng chờ một chút.","Please hold on a moment.","请|稍等|一下。","qǐng shāo děng yíxià."],
+["Anh có thể nói chậm hơn được không?","Could you speak more slowly?","你|可以|说|慢一点|吗？","nǐ kěyǐ shuō màn yìdiǎn ma?"],
+["Lát nữa tôi gọi lại cho anh.","I'll call you back later.","我|等一下|给你|回电话。","wǒ děng yíxià gěi nǐ huí diànhuà."],
+["Số điện thoại của anh là bao nhiêu?","What's your phone number?","你的|电话号码|是|多少？","nǐ de diànhuà hàomǎ shì duōshao?"]],
+chat:[
+["喂，你好！","wéi, nǐ hǎo!","Hello?","A lô, xin chào!",0],
+["这里是ABC公司。你找谁？","zhèlǐ shì ABC gōngsī. nǐ zhǎo shéi?","This is ABC company. Who would you like to speak to?","Đây là công ty ABC. Chị muốn gặp ai?",1],
+["我们的仓库在浦东外高桥保税区……","wǒmen de cāngkù zài Pǔdōng Wàigāoqiáo bǎoshuìqū...","Our warehouse is in the Waigaoqiao Free Trade Zone in Pudong...","Kho của chúng tôi ở khu ngoại quan Ngoại Cao Kiều, Phố Đông... (nói rất nhanh)",3],
+["李先生在开会，现在不方便。","Lǐ xiānsheng zài kāihuì, xiànzài bù fāngbiàn.","Mr. Li is in a meeting right now.","Anh Lý đang họp, giờ không tiện.",4]]},
+{code:"CNNGB",city:"Ninh Ba",theme:"Hỏi cước & đặt booking",items:[
+["Cước một cont 40 feet đi Ninh Ba là bao nhiêu?","How much is the freight for a 40-foot container to Ningbo?","一个|四十尺柜|到宁波|运费|多少？","yí ge sìshí chǐ guì dào Níngbō yùnfèi duōshao?"],
+["Giá này đã gồm phụ phí chưa?","Does this price include surcharges?","这个价格|包含|附加费|吗？","zhège jiàgé bāohán fùjiāfèi ma?"],
+["Giá này có hiệu lực đến khi nào?","How long is this rate valid?","这个价格|有效期|到|什么时候？","zhège jiàgé yǒuxiàoqī dào shénme shíhou?"],
+["Tôi muốn đặt hai container.","I'd like to book two containers.","我|想|订|两个柜。","wǒ xiǎng dìng liǎng ge guì."],
+["Có thể giảm giá một chút không?","Can you give me a better price?","价格|能|便宜|一点|吗？","jiàgé néng piányi yìdiǎn ma?"],
+["Khi nào gửi xác nhận booking cho tôi?","When can you send me the booking confirmation?","订舱确认|什么时候|能|发给我？","dìngcāng quèrèn shénme shíhou néng fā gěi wǒ?"]],
+chat:[
+["你好，有什么可以帮你？","nǐ hǎo, yǒu shénme kěyǐ bāng nǐ?","Hi, how can I help you?","Xin chào, tôi giúp gì được chị?",0],
+["运费是一千二百美元。","yùnfèi shì yìqiān èrbǎi měiyuán.","The freight is 1,200 US dollars.","Cước là 1.200 đô la Mỹ.",1],
+["不包含，附加费另算。","bù bāohán, fùjiāfèi lìng suàn.","No, surcharges are charged separately.","Chưa gồm, phụ phí tính riêng.",4],
+["好吧，可以便宜五十美元。","hǎo ba, kěyǐ piányi wǔshí měiyuán.","OK, we can take 50 dollars off.","Được rồi, có thể bớt 50 đô.",3]]},
+{code:"CNSZX",city:"Thâm Quyến",theme:"Lịch tàu & chậm trễ",items:[
+["Khi nào tàu chạy?","When does the ship depart?","船|什么时候|开？","chuán shénme shíhou kāi?"],
+["Thời gian vận chuyển mất bao lâu?","How long is the transit time?","航程|要|多久？","hángchéng yào duōjiǔ?"],
+["Tàu bị chậm hai ngày.","The ship is delayed by two days.","船|延误了|两天。","chuán yánwù le liǎng tiān."],
+["Giờ cắt máng là khi nào?","When is the cut-off time?","截关时间|是|什么时候？","jiéguān shíjiān shì shénme shíhou?"],
+["Hàng đã lên tàu chưa?","Has the cargo been loaded?","货|已经|上船了|吗？","huò yǐjīng shàng chuán le ma?"],
+["Xin lỗi đã làm phiền anh.","Sorry for the trouble.","不好意思，|给你|添麻烦了。","bù hǎoyìsi, gěi nǐ tiān máfan le."]],
+chat:[
+["你的货下周走。","nǐ de huò xià zhōu zǒu.","Your cargo will ship next week.","Hàng của chị đi tuần sau.",0],
+["下周三开船。","xià zhōusān kāi chuán.","The ship leaves next Wednesday.","Thứ Tư tuần sau tàu chạy.",3],
+["我的货什么时候到？客户在催。","wǒ de huò shénme shíhou dào? kèhù zài cuī.","When will my cargo arrive? My customer keeps chasing.","Bao giờ hàng tôi đến? Khách đang giục.",2],
+["啊？客户会不高兴的。","á? kèhù huì bù gāoxìng de.","What? The customer won't be happy.","Hả? Khách sẽ không vui đâu.",5]]},
+{code:"SGSIN",city:"Singapore",theme:"Chứng từ & vận đơn",items:[
+["Vui lòng gửi SI (thông tin làm bill) cho tôi.","Please send me the shipping instructions.","请|把|提单补料|发给我。","qǐng bǎ tídān bǔliào fā gěi wǒ."],
+["Tôi đã gửi bill nháp vào email của anh.","I've sent the draft B/L to your email.","我|已经|把|提单草稿|发到|你邮箱了。","wǒ yǐjīng bǎ tídān cǎogǎo fā dào nǐ yóuxiāng le."],
+["Vui lòng kiểm tra và xác nhận.","Please check and confirm.","请|核对|并|确认。","qǐng héduì bìng quèrèn."],
+["Tên người nhận hàng cần sửa.","The consignee name needs to be corrected.","收货人|名字|需要|修改。","shōuhuòrén míngzi xūyào xiūgǎi."],
+["Khi nào phát hành bill gốc?","When will the original B/L be issued?","正本提单|什么时候|签发？","zhèngběn tídān shénme shíhou qiānfā?"],
+["Tôi gửi hoá đơn cho anh nhé.","I'll send you the invoice.","我|把|发票|发给你。","wǒ bǎ fāpiào fā gěi nǐ."]],
+chat:[
+["你好，订舱已经确认了。","nǐ hǎo, dìngcāng yǐjīng quèrèn le.","Hi, the booking has been confirmed.","Chào chị, booking đã được xác nhận.",0],
+["提单草稿发了吗？","tídān cǎogǎo fā le ma?","Have you sent the draft B/L?","Bill nháp gửi chưa?",1],
+["草稿有问题吗？","cǎogǎo yǒu wèntí ma?","Is there any problem with the draft?","Bản nháp có vấn đề gì không?",3],
+["改好了，没问题了。","gǎi hǎo le, méi wèntí le.","It's fixed, everything is fine now.","Sửa xong rồi, không còn vấn đề gì.",4]]},
+{code:"HKHKG",city:"Hồng Kông",theme:"Ăn uống & đi lại",items:[
+["Cho tôi xem thực đơn.","Can I see the menu, please?","请|给我|看看|菜单。","qǐng gěi wǒ kànkan càidān."],
+["Tôi không ăn cay.","I don't eat spicy food.","我|不|吃|辣。","wǒ bù chī là."],
+["Tính tiền giúp tôi.","Can I have the bill, please?","服务员，|买单。","fúwùyuán, mǎidān."],
+["Ra sân bay mất bao lâu?","How long does it take to get to the airport?","去机场|要|多长时间？","qù jīchǎng yào duō cháng shíjiān?"],
+["Làm ơn chở tôi đến địa chỉ này.","Please take me to this address.","请|送我|到|这个地址。","qǐng sòng wǒ dào zhège dìzhǐ."],
+["Nhà vệ sinh ở đâu?","Where is the restroom?","洗手间|在|哪儿？","xǐshǒujiān zài nǎr?"]],
+chat:[
+["欢迎光临！请坐。","huānyíng guānglín! qǐng zuò.","Welcome! Please have a seat.","Chào mừng quý khách! Mời ngồi.",0],
+["我们的招牌菜是麻辣鱼。","wǒmen de zhāopáicài shì málà yú.","Our signature dish is spicy fish.","Món đặc biệt của quán là cá cay tê.",1],
+["吃好了吗？","chī hǎo le ma?","Have you finished?","Ăn xong chưa ạ?",2],
+["你好，去哪儿？","nǐ hǎo, qù nǎr?","Hi, where to?","Chào chị, đi đâu ạ?",4]]},
+{code:"CNCAN",city:"Quảng Châu",theme:"Mua sắm & trả giá",items:[
+["Cái này bao nhiêu tiền?","How much is this?","这个|多少钱？","zhège duōshao qián?"],
+["Đắt quá!","That's too expensive!","太|贵了！","tài guì le!"],
+["Có màu khác không?","Do you have other colors?","有|别的|颜色|吗？","yǒu bié de yánsè ma?"],
+["Tôi thử được không?","Can I try it on?","我|可以|试试|吗？","wǒ kěyǐ shìshi ma?"],
+["Tôi lấy cái này.","I'll take this one.","我|要|这个。","wǒ yào zhège."],
+["Trả bằng thẻ được không?","Can I pay by card?","可以|刷卡|吗？","kěyǐ shuākǎ ma?"]],
+chat:[
+["你好，随便看看。","nǐ hǎo, suíbiàn kànkan.","Hi, feel free to look around.","Chào chị, cứ xem thoải mái.",0],
+["这件三百块。","zhè jiàn sānbǎi kuài.","This one is 300 yuan.","Cái này 300 tệ.",1],
+["那二百八，怎么样？","nà èrbǎi bā, zěnmeyàng?","Then 280, how about that?","Vậy 280, được không?",4],
+["现金还是微信？","xiànjīn háishi Wēixìn?","Cash or WeChat?","Tiền mặt hay WeChat?",5]]},
+{code:"USLAX",city:"Los Angeles",theme:"Họp & nói chuyện lịch sự",items:[
+["Cảm ơn anh đã dành thời gian.","Thank you for your time.","谢谢你|抽出|时间。","xièxie nǐ chōuchū shíjiān."],
+["Tôi hiểu rồi.","I see. / I understand.","我|明白了。","wǒ míngbai le."],
+["Anh nhắc lại được không?","Could you say that again?","你|能|再说|一遍|吗？","nǐ néng zài shuō yí biàn ma?"],
+["Tôi sẽ kiểm tra rồi báo lại anh.","I'll check and get back to you.","我|查一下|再|回复你。","wǒ chá yíxià zài huífù nǐ."],
+["Mong được hợp tác lâu dài.","I look forward to a long-term partnership.","希望|我们|长期|合作。","xīwàng wǒmen chángqī hézuò."],
+["Hẹn gặp lại lần sau!","See you next time!","下次|见！","xià cì jiàn!"]],
+chat:[
+["我们想把每月的货量增加到五十个柜。","wǒmen xiǎng bǎ měi yuè de huòliàng zēngjiā dào wǔshí ge guì.","We want to increase our monthly volume to 50 containers.","Chúng tôi muốn tăng sản lượng mỗi tháng lên 50 cont.",2],
+["每个月五十个柜，价格能优惠吗？","měi ge yuè wǔshí ge guì, jiàgé néng yōuhuì ma?","Fifty containers a month, can you give us a discount?","Mỗi tháng 50 cont, giá có ưu đãi được không?",3],
+["好，那我等你的消息。","hǎo, nà wǒ děng nǐ de xiāoxi.","OK, I'll wait to hear from you.","Được, vậy tôi chờ tin chị.",4],
+["今天就到这里吧。","jīntiān jiù dào zhèlǐ ba.","Let's stop here for today.","Hôm nay đến đây thôi nhé.",0]]}
+];
+// flatten items with ids
+const ITEMS=[];PORTS.forEach((p,pi)=>p.items.forEach((it,ii)=>ITEMS.push({id:pi+"-"+ii,pi,vi:it[0],en:it[1],zhc:it[2].split("|"),zh:it[2].replace(/\|/g,""),py:it[3]})));
+const byId=id=>ITEMS.find(x=>x.id===id);
+
+// ---------- STATE ----------
+const KEY="tau-song-ngu-v1";
+const DAY=864e5, INTERVALS=[0,1,3,7,14,30,60];
+let S={xp:0,streak:0,lastDay:"",stars:{},srs:{},focus:"both",pinyin:true,slow:false};
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(S,JSON.parse(raw))}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const today=()=>new Date().toLocaleDateString("en-CA");
+function touchStreak(){const t=today();if(S.lastDay===t)return;const y=new Date(Date.now()-DAY).toLocaleDateString("en-CA");S.streak=S.lastDay===y?S.streak+1:1;S.lastDay=t}
+function grade(id,lang,ok){const k=id+"|"+lang;const c=S.srs[k]||{b:0,due:0};c.b=ok?Math.min(c.b+1,INTERVALS.length-1):1;c.due=Date.now()+(ok?INTERVALS[c.b]*DAY:10*6e4);S.srs[k]=c}
+function introduce(id,lang){const k=id+"|"+lang;if(!S.srs[k])S.srs[k]={b:0,due:Date.now()+DAY}}
+const dueKeys=()=>Object.entries(S.srs).filter(([k,v])=>v.due<=Date.now()).map(([k])=>k);
+const level=()=>1+Math.floor(S.xp/200);
+
+// ---------- SPEECH ----------
+let voices=[];
+function loadVoices(){try{voices=speechSynthesis.getVoices()}catch(e){}}
+try{loadVoices();speechSynthesis.onvoiceschanged=loadVoices}catch(e){}
+function pickVoice(lang){const want=lang==="zh"?/^zh[-_](CN|Hans)/i:/^en[-_]US/i;const alt=lang==="zh"?/^zh/i:/^en/i;
+  return voices.find(v=>want.test(v.lang)&&/Google|Natural|Online/i.test(v.name))||voices.find(v=>want.test(v.lang))||voices.find(v=>alt.test(v.lang))}
+function say(text,lang,slow){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang=lang==="zh"?"zh-CN":"en-US";const v=pickVoice(lang);if(v)u.voice=v;u.rate=(slow||S.slow)?0.6:0.92;speechSynthesis.speak(u)}catch(e){}}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+function hear(lang){return new Promise((res,rej)=>{if(!SR)return rej("none");let r;try{r=new SR()}catch(e){return rej("none")}
+  r.lang=lang==="zh"?"zh-CN":"en-US";r.interimResults=false;r.maxAlternatives=3;let got=false;
+  r.onresult=e=>{got=true;res([...e.results[0]].map(a=>a.transcript))};r.onerror=e=>rej(e.error||"err");r.onend=()=>{if(!got)rej("no-speech")};
+  try{r.start()}catch(e){rej("none")}})}
+function norm(s,lang){s=s.toLowerCase();return lang==="zh"?s.replace(/[^\u4e00-\u9fff0-9a-z]/g,""):s.replace(/[^a-z0-9' ]/g," ").replace(/\s+/g," ").trim()}
+function sim(a,b){if(!a.length&&!b.length)return 1;const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return 1-d[m][n]/Math.max(m,n)}
+
+// ---------- HELPERS ----------
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pickN=(arr,n,not)=>shuffle(arr.filter(x=>!not.includes(x))).slice(0,n);
+const ICON_SPK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICON_MIC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const textOf=(it,lang)=>lang==="zh"?it.zh:it.en;
+function spkBtn(text,lang){return `<button class="spk" data-say="${esc(text)}" data-lang="${lang}" aria-label="Nghe">${ICON_SPK}</button>`}
+function phrase(it,lang,withSpk=true){
+  if(lang==="zh")return `<div class="ph zh"><div class="t"><span class="tag">中文</span><div class="han">${esc(it.zh)}</div>${S.pinyin?`<div class="py">${esc(it.py)}</div>`:""}</div>${withSpk?spkBtn(it.zh,"zh"):""}</div>`;
+  return `<div class="ph en"><div class="t"><span class="tag">EN</span><div class="ent">${esc(it.en)}</div></div>${withSpk?spkBtn(it.en,"en"):""}</div>`}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b){e.stopPropagation();say(b.dataset.say,b.dataset.lang,b.dataset.slow==="1")}},true);
+
+// ---------- HOME ----------
+function unlocked(i){return i===0||S.stars[PORTS[i-1].code]>0}
+function home(){
+  try{window.speechSynthesis&&speechSynthesis.cancel()}catch(e){}
+  const due=dueKeys().length;
+  const hereIdx=PORTS.findIndex((p,i)=>unlocked(i)&&!S.stars[p.code]);
+  $("#app").innerHTML=`
+  <header><h1>Tàu Song Ngữ</h1><p class="sub">Mỗi cảng một tình huống. Học cùng lúc tiếng Trung và tiếng Anh, lấy tiếng Việt làm cầu nối.</p></header>
+  <div class="stats">
+    <div class="stat"><b>${S.xp}</b><span>XP</span></div>
+    <div class="stat"><b>${level()}</b><span>CẤP</span></div>
+    <div class="stat"><b>${S.streak}</b><span>NGÀY LIỀN</span></div>
+    <div class="stat"><b>${due}</b><span>CẦN ÔN</span></div>
+  </div>
+  <div class="row">
+    <div class="seg" role="group" aria-label="Ngôn ngữ luyện">
+      ${[["zh","中文"],["both","Cả hai"],["en","English"]].map(([v,l])=>`<button data-focus="${v}" aria-pressed="${S.focus===v}">${l}</button>`).join("")}
+    </div>
+    <button class="chip" id="tPy" aria-pressed="${S.pinyin}">Pinyin</button>
+    <button class="chip" id="tSlow" aria-pressed="${S.slow}">Đọc chậm</button>
+  </div>
+  <button class="review" id="rev" ${due?"":"disabled"}><span><b>Ôn tập hôm nay</b><small>${due?due+" câu đến hạn ôn":"Chưa có câu nào đến hạn. Học cảng mới nhé."}</small></span><span aria-hidden="true">→</span></button>
+  <section><h2>Hải trình</h2>
+  <ol class="route">${PORTS.map((p,i)=>{const st=S.stars[p.code]||0,un=unlocked(i);
+    return `<li class="port ${st?"done":""} ${i===hereIdx?"here":""}"><span class="dot">${i+1}</span>
+    <button data-port="${i}" ${un?"":"disabled"}><span style="min-width:0"><span class="code">${p.code}</span><br><span class="city">${p.city}</span><br><span class="theme">${p.theme}</span></span>
+    <span class="stars" aria-label="${st} sao">${"★".repeat(st)}<i>${"★".repeat(3-st)}</i></span></button></li>`}).join("")}</ol></section>
+  <p class="foot">Mỗi cảng khoảng 6–8 phút. Có ít nhất 1 sao thì mở cảng tiếp theo. Câu đã học sẽ quay lại để ôn sau 1, 3, 7, 14, 30 ngày.</p>`;
+  document.querySelectorAll("[data-focus]").forEach(b=>b.onclick=()=>{S.focus=b.dataset.focus;save();home()});
+  $("#tPy").onclick=()=>{S.pinyin=!S.pinyin;save();home()};
+  $("#tSlow").onclick=()=>{S.slow=!S.slow;save();home()};
+  $("#rev").onclick=startReview;
+  document.querySelectorAll("[data-port]").forEach(b=>b.onclick=()=>startPort(+b.dataset.port));
+}
+
+// ---------- SESSION ----------
+let Q=[],qi=0,score=0,total=0,sess=null,langFlip=0;
+function nextLang(){if(S.focus!=="both")return S.focus;langFlip^=1;return langFlip?"zh":"en"}
+function startPort(pi){
+  const p=PORTS[pi],ids=p.items.map((_,i)=>pi+"-"+i);
+  const learn=ids.map(id=>({t:"learn",id}));
+  const listen=shuffle(ids).slice(0,3).map(id=>({t:"listen",id,lang:nextLang()}));
+  const meaning=shuffle(ids).slice(0,3).map(id=>({t:"meaning",id,lang:nextLang()}));
+  const chat=p.chat.map((c,ci)=>({t:"chat",pi,ci,lang:nextLang()}));
+  const build=shuffle(ids).slice(0,3).map(id=>({t:"build",id,lang:nextLang()}));
+  const speak=shuffle(ids).slice(0,2).map(id=>({t:"speak",id,lang:nextLang()}));
+  sess={kind:"port",pi};begin([...learn,...listen,...meaning,...chat,...build,...speak]);
+}
+function startReview(){
+  const keys=shuffle(dueKeys()).slice(0,12);const types=["listen","meaning","build","meaning","listen","speak"];
+  sess={kind:"review"};begin(keys.map((k,i)=>{const [id,lang]=k.split("|");return {t:types[i%types.length],id,lang,rev:true}}));
+}
+function begin(list){Q=list;qi=0;score=0;total=0;step()}
+function frame(kind,body,showGo=true){
+  $("#app").innerHTML=`<div class="bar"><button class="x" id="quit" aria-label="Thoát">×</button><div class="prog"><i style="width:${Math.round(qi/Q.length*100)}%"></i></div></div>
+  <div class="card"><div class="kind">${kind}</div>${body}</div><div id="fbx"></div>${showGo?'<button class="go" id="go" disabled>Kiểm tra</button>':""}`;
+  $("#quit").onclick=home;
+}
+function step(){if(qi>=Q.length)return finish();const q=Q[qi];({learn:doLearn,listen:doListen,meaning:doMeaning,chat:doChat,build:doBuild,speak:doSpeak})[q.t](q)}
+function advance(){qi++;step()}
+function feedback(ok,it,lang,extra=""){
+  total++;if(ok){score++;S.xp+=10}
+  $("#fbx").innerHTML=`<div class="fb ${ok?"ok":"no"}"><b>${ok?"Chính xác! +10 XP":"Chưa đúng. Đáp án là:"}</b>${extra}${it?phrase(it,lang):""}</div>`;
+  if(it)say(textOf(it,lang),lang);
+  const go=$("#go");go.disabled=false;go.textContent="Tiếp tục";go.onclick=advance;go.focus();save();
+}
+function options(container,items,render,onPick){
+  container.innerHTML=items.map((x,i)=>`<button class="opt" data-i="${i}">${render(x)}</button>`).join("");
+  let sel=null;container.querySelectorAll(".opt").forEach(b=>b.onclick=()=>{if(container.dataset.locked)return;container.querySelectorAll(".opt").forEach(o=>o.classList.remove("sel"));b.classList.add("sel");sel=+b.dataset.i;$("#go").disabled=false});
+  $("#go").onclick=()=>{if(sel==null)return;container.dataset.locked=1;onPick(sel,container.querySelectorAll(".opt"))};
+}
+function doLearn(q){const it=byId(q.id);
+  frame("Cụm mới · nghe và đọc to theo",`<div class="vi">${esc(it.vi)}</div>${phrase(it,"zh")}${phrase(it,"en")}
+  <div class="row"><button class="chip" data-say="${esc(it.zh)}" data-lang="zh" data-slow="1">中文 chậm</button><button class="chip" data-say="${esc(it.en)}" data-lang="en" data-slow="1">EN chậm</button></div>`);
+  const go=$("#go");go.disabled=false;go.textContent="Đã nhớ, tiếp";go.onclick=()=>{["zh","en"].forEach(l=>introduce(it.id,l));save();advance()};
+  say(it.zh,"zh");
+}
+function poolFor(it){const same=ITEMS.filter(x=>x.pi===it.pi&&x.id!==it.id);const learned=ITEMS.filter(x=>x.id!==it.id&&(S.srs[x.id+"|zh"]||S.srs[x.id+"|en"]));return shuffle([...new Set([...same,...learned])])}
+function doListen(q){const it=byId(q.id),lang=q.lang;
+  const opts=shuffle([it,...poolFor(it).slice(0,3)]);
+  frame(`Nghe ${lang==="zh"?"tiếng Trung":"tiếng Anh"} · chọn nghĩa`,`<div class="row"><button class="spk" data-say="${esc(textOf(it,lang))}" data-lang="${lang}" aria-label="Nghe lại" style="width:64px;height:64px">${ICON_SPK}</button>
+  <button class="spk slow" data-say="${esc(textOf(it,lang))}" data-lang="${lang}" data-slow="1" aria-label="Nghe chậm">0.6×</button></div><div class="opts" id="o"></div>`);
+  say(textOf(it,lang),lang);
+  options($("#o"),opts,x=>esc(x.vi),(i,els)=>{const ok=opts[i]===it;els[i].classList.add(ok?"right":"wrong");els[opts.indexOf(it)].classList.add("right");grade(it.id,lang,ok);feedback(ok,it,lang)});
+}
+function doMeaning(q){const it=byId(q.id),lang=q.lang;
+  const opts=shuffle([it,...poolFor(it).slice(0,2)]);
+  frame(`Nói thế nào bằng ${lang==="zh"?"tiếng Trung":"tiếng Anh"}?`,`<div class="vi">${esc(it.vi)}</div><div class="opts" id="o"></div>`);
+  options($("#o"),opts,x=>lang==="zh"?`<div class="han">${esc(x.zh)}</div>${S.pinyin?`<div class="py">${esc(x.py)}</div>`:""}`:`<span class="ent">${esc(x.en)}</span>`,
+    (i,els)=>{const ok=opts[i]===it;els[i].classList.add(ok?"right":"wrong");els[opts.indexOf(it)].classList.add("right");grade(it.id,lang,ok);feedback(ok,it,lang)});
+}
+function doChat(q){const p=PORTS[q.pi],c=p.chat[q.ci],lang=q.lang;const ans=byId(q.pi+"-"+c[4]);
+  const opts=shuffle([ans,...pickN(ITEMS.filter(x=>x.pi===q.pi),2,[ans])]);
+  const said=lang==="zh"?`<div class="han" style="font-size:22px">${esc(c[0])}</div>${S.pinyin?`<div class="py">${esc(c[1])}</div>`:""}`:`<div class="ent" style="font-size:18px">${esc(c[2])}</div>`;
+  frame(`Hội thoại tại ${p.city} · chọn câu trả lời`,`<div><div class="who">Đối tác nói</div><div class="bubble"><div class="t" style="flex:1;min-width:0">${said}<div id="hv" class="py" hidden>${esc(c[3])}</div></div>${spkBtn(lang==="zh"?c[0]:c[2],lang)}</div>
+  <button class="hint" id="hb">Xem nghĩa tiếng Việt</button></div><div class="opts" id="o"></div>`);
+  $("#hb").onclick=()=>{$("#hv").hidden=false;$("#hb").hidden=true};
+  say(lang==="zh"?c[0]:c[2],lang);
+  options($("#o"),opts,x=>lang==="zh"?`<div class="han">${esc(x.zh)}</div>${S.pinyin?`<div class="py">${esc(x.py)}</div>`:""}`:`<span class="ent">${esc(x.en)}</span>`,
+    (i,els)=>{const ok=opts[i]===ans;els[i].classList.add(ok?"right":"wrong");els[opts.indexOf(ans)].classList.add("right");grade(ans.id,lang,ok);feedback(ok,ans,lang,`<span>${esc(ans.vi)}</span>`)});
+}
+function doBuild(q){const it=byId(q.id),lang=q.lang;
+  const chunks=lang==="zh"?it.zhc:it.en.replace(/[.?!]+$/,"").split(" ");
+  let bank=shuffle(chunks.map((t,i)=>({t,i})));if(bank.every((b,k)=>b.i===k)&&bank.length>1)bank.reverse();
+  const placed=[];
+  frame(`Xếp câu ${lang==="zh"?"tiếng Trung":"tiếng Anh"}`,`<div class="vi">${esc(it.vi)}</div><div class="slots" id="sl"></div><div class="bank" id="bk"></div>`);
+  const cls=lang==="zh"?"tile zhf":"tile";
+  function draw(){
+    $("#sl").innerHTML=placed.map((b,k)=>`<button class="${cls}" data-k="${k}">${esc(b.t)}</button>`).join("");
+    $("#bk").innerHTML=bank.map((b,k)=>`<button class="${cls} ${placed.includes(b)?"used":""}" data-b="${k}">${esc(b.t)}</button>`).join("");
+    $("#sl").querySelectorAll("[data-k]").forEach(x=>x.onclick=()=>{if($("#sl").dataset.locked)return;placed.splice(+x.dataset.k,1);draw()});
+    $("#bk").querySelectorAll("[data-b]").forEach(x=>x.onclick=()=>{if($("#sl").dataset.locked)return;const b=bank[+x.dataset.b];if(!placed.includes(b)){placed.push(b);if(lang==="zh")say(b.t,"zh");draw()}});
+    $("#go").disabled=placed.length!==chunks.length;
+  }
+  draw();
+  $("#go").onclick=()=>{$("#sl").dataset.locked=1;const ok=placed.map(b=>b.t).join(lang==="zh"?"":" ")===chunks.join(lang==="zh"?"":" ");grade(it.id,lang,ok);feedback(ok,it,lang)};
+}
+function doSpeak(q){const it=byId(q.id),lang=q.lang;
+  frame(`Nói ${lang==="zh"?"tiếng Trung":"tiếng Anh"}`,`<div class="vi">${esc(it.vi)}</div>
+  <div id="tg" hidden>${phrase(it,lang)}</div><button class="hint" id="hb">Gợi ý: xem câu mẫu</button>
+  <button class="mic" id="mic" aria-label="Bấm rồi nói">${ICON_MIC}</button><div class="heard" id="hd">Bấm micro rồi nói câu trên</div>
+  <div class="row" id="self" hidden style="justify-content:center"><button class="chip" id="sOk">Mình nói được</button><button class="chip" id="sNo">Chưa được</button></div>`,true);
+  $("#go").textContent="Bỏ qua";$("#go").disabled=false;$("#go").onclick=()=>{total++;grade(it.id,lang,false);save();advance()};
+  $("#hb").onclick=()=>{$("#tg").hidden=false;$("#hb").hidden=true};
+  const selfRate=msg=>{$("#hd").textContent=msg;$("#tg").hidden=false;$("#hb").hidden=true;$("#self").hidden=false;
+    $("#sOk").onclick=()=>{$("#self").hidden=true;total++;score++;S.xp+=5;grade(it.id,lang,true);$("#fbx").innerHTML=`<div class="fb ok"><b>Tốt lắm! +5 XP</b></div>`;goNext()};
+    $("#sNo").onclick=()=>{$("#self").hidden=true;total++;grade(it.id,lang,false);$("#fbx").innerHTML=`<div class="fb no"><b>Không sao, câu này sẽ quay lại sớm.</b></div>`;goNext()}};
+  const goNext=()=>{const g=$("#go");g.textContent="Tiếp tục";g.onclick=advance;save()};
+  $("#mic").onclick=async()=>{const m=$("#mic");if(m.classList.contains("on"))return;m.classList.add("on");$("#hd").textContent="Đang nghe…";
+    try{const alts=await hear(lang);m.classList.remove("on");const target=norm(textOf(it,lang),lang);
+      const best=Math.max(...alts.map(a=>sim(norm(a,lang),target)));const ok=best>=(lang==="zh"?0.6:0.75);
+      $("#hd").textContent="Máy nghe được: “"+alts[0]+"”";grade(it.id,lang,ok);total++;if(ok){score++;S.xp+=10}
+      $("#fbx").innerHTML=`<div class="fb ${ok?"ok":"no"}"><b>${ok?"Khớp "+Math.round(best*100)+"%! +10 XP":"Mới khớp "+Math.round(best*100)+"%. Nghe mẫu rồi thử lại lần sau nhé."}</b>${phrase(it,lang)}</div>`;$("#mic").disabled=true;goNext();
+    }catch(err){m.classList.remove("on");
+      selfRate(err==="no-speech"?"Chưa nghe thấy gì. Nghe câu mẫu, nói to theo rồi tự chấm:":"Máy không dùng được micro ở đây. Nghe câu mẫu, nói to theo rồi tự chấm:");say(textOf(it,lang),lang)}};
+}
+function finish(){
+  touchStreak();
+  const pct=total?score/total:1;let stars=pct>=.9?3:pct>=.7?2:1;
+  if(sess.kind==="port"){const code=PORTS[sess.pi].code;S.stars[code]=Math.max(S.stars[code]||0,stars);S.xp+=20}
+  save();
+  const nextP=sess.kind==="port"&&PORTS[sess.pi+1];
+  $("#app").innerHTML=`<div class="card end"><div class="kind">${sess.kind==="port"?"Cập cảng "+PORTS[sess.pi].city:"Ôn tập xong"}</div>
+  <div class="big" aria-label="${stars} sao">${"★".repeat(stars)}<span style="color:var(--line)">${"★".repeat(3-stars)}</span></div>
+  <div class="vi">Đúng ${score}/${total} câu</div><div class="note">${sess.kind==="port"?"+20 XP thưởng cập cảng. ":""}Chuỗi ngày học: ${S.streak} · Tổng XP: ${S.xp}</div>
+  ${nextP?`<div class="note">Cảng tiếp theo: <b>${nextP.city}</b> · ${nextP.theme}</div>`:""}</div>
+  <button class="go" id="h">Về hải trình</button>`;
+  $("#h").onclick=home;
+}
+home();
+</script>
